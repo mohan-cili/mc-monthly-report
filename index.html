@@ -1,0 +1,792 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>IT Monthly Report</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap');
+:root{
+  --bg:#07090f;--s1:#0e1117;--s2:#141821;--s3:#1c2333;
+  --border:#1e2a3a;--border2:#253040;
+  --accent:#3b82f6;--accent-g:#1d4ed8;
+  --green:#10b981;--yellow:#f59e0b;--red:#ef4444;
+  --purple:#8b5cf6;--cyan:#06b6d4;--orange:#f97316;
+  --text:#e2e8f0;--muted:#64748b;--muted2:#4a5568;
+  --font:'Space Grotesk',sans-serif;--mono:'JetBrains Mono',monospace;
+}
+*{box-sizing:border-box;margin:0;padding:0;}
+body{font-family:var(--font);background:var(--bg);color:var(--text);min-height:100vh;font-size:14px;}
+
+/* HEADER */
+.hdr{background:var(--s1);border-bottom:1px solid var(--border);padding:0 24px;height:56px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:50;gap:12px;}
+.hdr-brand{display:flex;align-items:center;gap:10px;}
+.hdr-logo{width:28px;height:28px;background:var(--accent);border-radius:6px;display:flex;align-items:center;justify-content:center;font-size:14px;}
+.hdr-brand h1{font-size:.9rem;font-weight:600;}
+.hdr-brand span{font-size:.72rem;color:var(--muted);font-family:var(--mono);}
+.hdr-right{display:flex;align-items:center;gap:8px;flex-wrap:wrap;}
+.sel{background:var(--s2);border:1px solid var(--border2);color:var(--text);padding:5px 10px;border-radius:6px;font-family:var(--font);font-size:.78rem;outline:none;cursor:pointer;}
+.btn{padding:5px 14px;border-radius:6px;font-family:var(--font);font-size:.75rem;font-weight:500;cursor:pointer;border:1px solid var(--border2);transition:all .15s;white-space:nowrap;}
+.btn-snap{background:rgba(245,158,11,.1);border-color:var(--yellow);color:var(--yellow);}
+.btn-snap:hover{background:rgba(245,158,11,.2);}
+.btn-ghost{background:transparent;color:var(--muted);}
+.btn-ghost:hover{color:var(--text);border-color:var(--border2);}
+
+/* SYNC BAR */
+.sync-bar{padding:6px 24px;display:flex;align-items:center;gap:10px;font-size:.74rem;flex-wrap:wrap;border-bottom:1px solid var(--border);}
+.sync-bar.synced{background:rgba(16,185,129,.06);border-color:rgba(16,185,129,.2);}
+.sync-bar.syncing{background:rgba(245,158,11,.06);border-color:rgba(245,158,11,.2);}
+.sync-bar.error{background:rgba(239,68,68,.06);border-color:rgba(239,68,68,.2);}
+.sync-dot{width:8px;height:8px;border-radius:50%;flex-shrink:0;}
+.dot-green{background:var(--green);box-shadow:0 0 6px var(--green);}
+.dot-yellow{background:var(--yellow);animation:pulse 1s infinite;}
+.dot-red{background:var(--red);}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.4}}
+.sync-text{color:var(--muted);}
+.sync-text strong{color:var(--text);}
+.last-updated{font-family:var(--mono);font-size:.68rem;color:var(--muted2);margin-left:auto;}
+
+/* MAIN */
+.main{max-width:1400px;margin:0 auto;padding:24px;}
+.pg-title{font-size:1.4rem;font-weight:700;letter-spacing:-.02em;margin-bottom:2px;}
+.pg-sub{color:var(--muted);font-size:.78rem;margin-bottom:22px;font-family:var(--mono);}
+.pg-sub span{color:var(--accent);}
+
+/* TABS */
+.tabs{display:flex;gap:2px;background:var(--s1);border:1px solid var(--border);border-radius:8px;padding:4px;margin-bottom:22px;overflow-x:auto;flex-wrap:wrap;}
+.tab{padding:6px 13px;border-radius:5px;border:none;background:transparent;color:var(--muted);font-family:var(--font);font-size:.78rem;font-weight:500;cursor:pointer;white-space:nowrap;transition:all .15s;}
+.tab.active{background:var(--s3);color:var(--text);border:1px solid var(--border2);}
+.tab:hover:not(.active){color:var(--text);}
+.panel{display:none;}.panel.active{display:block;}
+
+/* OVERVIEW CARDS */
+.sec-hdr{display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;flex-wrap:wrap;gap:8px;}
+.sec-hdr h2{font-size:.95rem;font-weight:600;}
+.sec-hdr .hint{font-size:.73rem;color:var(--muted);}
+.cmp-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(210px,1fr));gap:10px;margin-bottom:22px;}
+.cmp-card{background:var(--s1);border:1px solid var(--border);border-radius:10px;padding:15px;cursor:pointer;transition:border-color .2s;position:relative;overflow:hidden;}
+.cmp-card:hover{border-color:var(--border2);}
+.cc-lbl{font-size:.67rem;text-transform:uppercase;letter-spacing:.1em;color:var(--muted);margin-bottom:9px;display:flex;align-items:center;gap:5px;}
+.cc-lbl .dot{width:5px;height:5px;border-radius:50%;background:var(--ca,var(--accent));flex-shrink:0;}
+.cc-row{display:flex;gap:10px;align-items:flex-end;}
+.cc-m{flex:1;}
+.cc-m .ml{font-size:.63rem;color:var(--muted);font-family:var(--mono);margin-bottom:3px;}
+.cc-m .mv{font-size:1.55rem;font-weight:700;font-family:var(--mono);line-height:1;color:var(--ca,var(--text));}
+.cc-m.p1 .mv{font-size:1.05rem;color:var(--muted);}
+.cc-m.p2 .mv{font-size:.88rem;color:var(--muted2);}
+.cc-delta{position:absolute;top:12px;right:12px;font-size:.7rem;font-weight:600;font-family:var(--mono);padding:2px 7px;border-radius:4px;}
+.d-up{background:rgba(16,185,129,.12);color:var(--green);}
+.d-dn{background:rgba(239,68,68,.12);color:var(--red);}
+.d-nc{background:rgba(100,116,139,.1);color:var(--muted);}
+.cc-bar{height:3px;background:var(--s3);border-radius:2px;margin-top:10px;}
+.cc-bar-fill{height:100%;border-radius:2px;background:var(--ca,var(--accent));transition:width .5s;}
+
+/* CHARTS */
+.charts-row{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:18px;}
+@media(max-width:800px){.charts-row{grid-template-columns:1fr;}}
+.chart-card{background:var(--s1);border:1px solid var(--border);border-radius:10px;padding:16px;}
+.chart-card h4{font-size:.72rem;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.09em;margin-bottom:12px;}
+canvas{max-height:195px;}
+
+/* COUNT SECTIONS */
+.section-wrap{background:var(--s1);border:1px solid var(--border);border-radius:10px;padding:20px;margin-bottom:14px;}
+.sw-title{font-size:.72rem;font-weight:600;text-transform:uppercase;letter-spacing:.1em;color:var(--muted);margin-bottom:16px;padding-bottom:10px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;}
+.count-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(175px,1fr));gap:10px;margin-bottom:16px;}
+.count-item{background:var(--s2);border:1px solid var(--border2);border-radius:8px;padding:13px;transition:border-color .2s;}
+.count-item:focus-within{border-color:var(--accent);}
+.ci-label{font-size:.68rem;color:var(--muted);margin-bottom:6px;}
+.count-item input{background:transparent;border:none;color:var(--ca,var(--accent));font-family:var(--mono);font-size:1.8rem;font-weight:700;width:100%;outline:none;padding:0;line-height:1;}
+.count-item input:focus{color:var(--text);}
+.count-item input[readonly]{opacity:.55;cursor:default;}
+.ci-prev{font-size:.63rem;color:var(--muted2);font-family:var(--mono);margin-top:4px;}
+.ci-delta{font-size:.65rem;font-family:var(--mono);margin-top:3px;}
+.save-row{display:flex;align-items:center;gap:10px;margin-top:4px;}
+.save-btn{background:transparent;border:1px solid var(--accent);color:var(--accent);padding:6px 16px;border-radius:6px;font-family:var(--font);font-size:.76rem;font-weight:500;cursor:pointer;transition:all .15s;}
+.save-btn:hover{background:rgba(59,130,246,.1);}
+.save-btn:disabled{opacity:.4;cursor:not-allowed;}
+.saved-note{font-size:.72rem;color:var(--green);font-family:var(--mono);opacity:0;transition:opacity .3s;}
+.saved-note.show{opacity:1;}
+
+/* NOTE / ALERT */
+.note{background:rgba(59,130,246,.05);border:1px solid rgba(59,130,246,.15);border-radius:8px;padding:10px 14px;font-size:.77rem;color:var(--muted);margin-bottom:14px;line-height:1.6;}
+.note strong{color:var(--accent);}
+.alert-loading{background:rgba(245,158,11,.07);border:1px solid rgba(245,158,11,.2);border-radius:8px;padding:16px;text-align:center;font-size:.82rem;color:var(--yellow);margin-bottom:16px;}
+
+/* TOAST */
+.toast{position:fixed;bottom:20px;right:20px;background:var(--s2);border:1px solid var(--green);border-radius:8px;padding:10px 16px;font-size:.8rem;color:var(--green);z-index:200;opacity:0;transform:translateY(6px);transition:all .25s;pointer-events:none;max-width:300px;}
+.toast.show{opacity:1;transform:translateY(0);}
+</style>
+</head>
+<body>
+
+<div class="hdr">
+  <div class="hdr-brand">
+    <div class="hdr-logo">📊</div>
+    <div>
+      <h1>IT Monthly Report</h1>
+      <span id="hdr-sub">May 2026</span>
+    </div>
+  </div>
+  <div class="hdr-right">
+    <select class="sel" id="reportMonth" onchange="onMonthChange()">
+      <option>Jan 2025</option><option>Feb 2025</option><option>Mar 2025</option>
+      <option>Apr 2025</option><option>May 2025</option><option>Jun 2025</option>
+      <option>Jul 2025</option><option>Aug 2025</option><option>Sep 2025</option>
+      <option>Oct 2025</option><option>Nov 2025</option><option>Dec 2025</option>
+      <option>Jan 2026</option><option>Feb 2026</option><option>Mar 2026</option>
+      <option>Apr 2026</option><option selected>May 2026</option>
+    </select>
+    <button class="btn btn-ghost" onclick="loadAllData()">🔄 Refresh</button>
+    <button class="btn btn-snap" onclick="exportTXT()">📄 Export Report</button>
+  </div>
+</div>
+
+<div class="sync-bar syncing" id="syncBar">
+  <div class="sync-dot dot-yellow" id="syncDot"></div>
+  <span class="sync-text" id="syncText"><strong>Connecting</strong> to Supabase...</span>
+  <span class="last-updated" id="lastUpdated"></span>
+</div>
+
+<div class="main">
+  <div class="pg-title">IT Monthly Overview</div>
+  <div class="pg-sub">Period: <span id="sub-month">May 2026</span> &nbsp;·&nbsp; Live sync enabled &nbsp;·&nbsp; 3-month comparison</div>
+
+  <div class="tabs">
+    <button class="tab active" onclick="switchTab('overview',this)">📊 Overview</button>
+    <button class="tab" onclick="switchTab('onboarding',this)">👤 Onboarding</button>
+    <button class="tab" onclick="switchTab('assets',this)">💻 Assets</button>
+    <button class="tab" onclick="switchTab('security',this)">🛡 Security</button>
+    <button class="tab" onclick="switchTab('compliance',this)">✅ Compliance</button>
+    <button class="tab" onclick="switchTab('bitlocker',this)">🔒 BitLocker</button>
+    <button class="tab" onclick="switchTab('claude',this)">🤖 Claude AI</button>
+    <button class="tab" onclick="switchTab('atlassian',this)">🔷 Atlassian</button>
+    <button class="tab" onclick="switchTab('tickets',this)">🎫 IT Tickets</button>
+    <button class="tab" onclick="switchTab('licenses',this)">📋 Licenses</button>
+    <button class="tab" onclick="switchTab('mdm',this)">📱 MDM</button>
+  </div>
+
+  <div class="panel active" id="panel-overview">
+    <div class="sec-hdr">
+      <h2>3-Month Comparison</h2>
+      <span class="hint">Live data from Supabase · updates instantly across all team members · click any card to go to that section</span>
+    </div>
+    <div id="overview-loading" class="alert-loading">⏳ Loading data from Supabase...</div>
+    <div class="cmp-grid" id="cmp-grid" style="display:none"></div>
+    <div id="charts-wrap" style="display:none">
+      <div class="charts-row">
+        <div class="chart-card"><h4>Onboarding Trend</h4><canvas id="chartOnboard"></canvas></div>
+        <div class="chart-card"><h4>Asset Distribution</h4><canvas id="chartAssets"></canvas></div>
+      </div>
+      <div class="charts-row">
+        <div class="chart-card"><h4>Security — Severity Trend</h4><canvas id="chartSecurity"></canvas></div>
+        <div class="chart-card"><h4>IT Tickets Trend</h4><canvas id="chartTickets"></canvas></div>
+      </div>
+      <div class="charts-row">
+        <div class="chart-card"><h4>Compliance + BitLocker</h4><canvas id="chartCompliance"></canvas></div>
+        <div class="chart-card"><h4>MDM — Device OS Split</h4><canvas id="chartMDM"></canvas></div>
+      </div>
+      <div class="charts-row">
+        <div class="chart-card"><h4>Claude AI — User Growth</h4><canvas id="chartClaude"></canvas></div>
+        <div class="chart-card"><h4>Atlassian — User Status</h4><canvas id="chartAtlassian"></canvas></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="panel" id="panel-onboarding"></div>
+  <div class="panel" id="panel-assets"></div>
+  <div class="panel" id="panel-security"></div>
+  <div class="panel" id="panel-compliance"></div>
+  <div class="panel" id="panel-bitlocker"></div>
+  <div class="panel" id="panel-claude"></div>
+  <div class="panel" id="panel-atlassian"></div>
+  <div class="panel" id="panel-tickets"></div>
+  <div class="panel" id="panel-licenses"></div>
+  <div class="panel" id="panel-mdm"></div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+// ── SUPABASE CONFIG ──────────────────────────────────────────────────────────
+const SUPA_URL = 'https://rgbjammzercbzqizirsp.supabase.co';
+const SUPA_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJnYmphbW16ZXJjYnpxaXppcnNwIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzk4NzYwMDQsImV4cCI6MjA5NTQ1MjAwNH0.YEE3wIrMUprlZnKvFCnZvWBpjnTZH-rTDG_nzHdjLro';
+const TABLE = 'it_report_data';
+
+// ── SUPABASE API ──────────────────────────────────────────────────────────────
+async function sbFetch(path, method='GET', body=null, extraHeaders={}){
+  const headers = {
+    'apikey': SUPA_KEY,
+    'Authorization': 'Bearer ' + SUPA_KEY,
+    'Content-Type': 'application/json',
+    ...extraHeaders
+  };
+  const opts = { method, headers };
+  if(body) opts.body = JSON.stringify(body);
+  const res = await fetch(SUPA_URL + '/rest/v1/' + path, opts);
+  if(!res.ok){
+    const err = await res.text();
+    throw new Error(err);
+  }
+  return res.status === 204 ? null : res.json();
+}
+
+async function getMonthData(month){
+  const enc = encodeURIComponent(month);
+  return sbFetch(TABLE + '?month=eq.' + enc + '&select=section,field_key,field_value');
+}
+
+async function upsertField(month, section, fieldKey, fieldValue){
+  const user = localStorage.getItem('itr_user') || 'Team Member';
+  return sbFetch(
+    TABLE,
+    'POST',
+    { month, section, field_key: fieldKey, field_value: fieldValue, updated_by: user, updated_at: new Date().toISOString() },
+    { 'Prefer': 'resolution=merge-duplicates,return=minimal' }
+  );
+}
+
+async function getAllMonthsSummary(){
+  return sbFetch(TABLE + '?select=month,section,field_key,field_value&order=month.desc');
+}
+
+// ── DATA STATE ────────────────────────────────────────────────────────────────
+let currentMonth = 'May 2026';
+let monthData = {}; // { fieldKey: value }
+let historyData = {}; // { month: { fieldKey: value } }
+let allMonths = [];
+
+// ── SECTION DEFINITIONS ───────────────────────────────────────────────────────
+const SECTIONS = {
+  onboarding:{label:'👤 Onboarding',tab:'onboarding',groups:[{title:'Headcount Movement',fields:[
+    {key:'onboarded',label:'Total Onboarded',color:'green'},
+    {key:'offboarded',label:'Total Offboarded',color:'red'},
+    {key:'contractors',label:'Contractors Added',color:'yellow'},
+    {key:'transfers',label:'Internal Transfers',color:'cyan'},
+    {key:'net',label:'Net Change',color:'purple',readonly:true,compute:d=>(d.onboarded||0)-(d.offboarded||0)}
+  ]}]},
+  assets:{label:'💻 Assets',tab:'assets',groups:[
+    {title:'Laptops',fields:[
+      {key:'laptopsAssigned',label:'Assigned',color:'green'},
+      {key:'laptopsAvailable',label:'Available',color:'cyan'},
+      {key:'laptopsRepair',label:'In Repair',color:'yellow'},
+      {key:'laptopsRetired',label:'Retired',color:'red'},
+      {key:'laptopsTotal',label:'Total',color:'accent',readonly:true,compute:d=>(d.laptopsAssigned||0)+(d.laptopsAvailable||0)+(d.laptopsRepair||0)+(d.laptopsRetired||0)}
+    ]},
+    {title:'Monitors',fields:[
+      {key:'monitorsAssigned',label:'Assigned',color:'green'},
+      {key:'monitorsAvailable',label:'Available',color:'cyan'},
+      {key:'monitorsTotal',label:'Total',color:'accent',readonly:true,compute:d=>(d.monitorsAssigned||0)+(d.monitorsAvailable||0)}
+    ]},
+    {title:'PCs (Desktops)',fields:[
+      {key:'pcsAssigned',label:'Assigned',color:'green'},
+      {key:'pcsAvailable',label:'Available',color:'cyan'},
+      {key:'pcsRepair',label:'In Repair',color:'yellow'},
+      {key:'pcsTotal',label:'Total',color:'accent',readonly:true,compute:d=>(d.pcsAssigned||0)+(d.pcsAvailable||0)+(d.pcsRepair||0)}
+    ]},
+    {title:'Mouse / Peripherals',fields:[
+      {key:'mouseIssued',label:'Issued',color:'green'},
+      {key:'mouseAvailable',label:'Available',color:'cyan'},
+      {key:'mouseTotal',label:'Total',color:'accent',readonly:true,compute:d=>(d.mouseIssued||0)+(d.mouseAvailable||0)}
+    ]}
+  ]},
+  security:{label:'🛡 Security',tab:'security',groups:[
+    {title:'By Severity',fields:[
+      {key:'secCritical',label:'Critical',color:'red'},
+      {key:'secMedium',label:'Medium',color:'yellow'},
+      {key:'secLow',label:'Low',color:'green'},
+      {key:'secResolved',label:'Resolved',color:'cyan'},
+      {key:'secOpen',label:'Open',color:'orange'},
+      {key:'secTotal',label:'Total',color:'accent',readonly:true,compute:d=>(d.secCritical||0)+(d.secMedium||0)+(d.secLow||0)}
+    ]},
+    {title:'By Threat Type',fields:[
+      {key:'secPhishing',label:'Phishing',color:'red'},
+      {key:'secMalware',label:'Malware',color:'red'},
+      {key:'secRansomware',label:'Ransomware',color:'red'},
+      {key:'secUnauth',label:'Unauthorized Access',color:'yellow'},
+      {key:'secBreach',label:'Data Breach',color:'orange'},
+      {key:'secVuln',label:'Vulnerability',color:'yellow'},
+      {key:'secPolicy',label:'Policy Violation',color:'cyan'},
+      {key:'secSuspicious',label:'Suspicious Login',color:'purple'}
+    ]}
+  ]},
+  compliance:{label:'✅ Compliance',tab:'compliance',groups:[{title:'Device Compliance',fields:[
+    {key:'cmpCompliant',label:'Compliant',color:'green'},
+    {key:'cmpNonCompliant',label:'Non-Compliant',color:'red'},
+    {key:'cmpPending',label:'Pending',color:'yellow'},
+    {key:'cmpTotal',label:'Total Devices',color:'accent',readonly:true,compute:d=>(d.cmpCompliant||0)+(d.cmpNonCompliant||0)+(d.cmpPending||0)},
+    {key:'cmpPct',label:'Compliance %',color:'cyan',readonly:true,compute:d=>{const t=(d.cmpCompliant||0)+(d.cmpNonCompliant||0)+(d.cmpPending||0);return t?Math.round((d.cmpCompliant||0)/t*100):0},isPercent:true}
+  ]}]},
+  bitlocker:{label:'🔒 BitLocker',tab:'bitlocker',groups:[{title:'Encryption Status',fields:[
+    {key:'blEncrypted',label:'Encrypted',color:'green'},
+    {key:'blNotEncrypted',label:'Not Encrypted',color:'red'},
+    {key:'blSuspended',label:'Suspended',color:'yellow'},
+    {key:'blTotal',label:'Total Devices',color:'accent',readonly:true,compute:d=>(d.blEncrypted||0)+(d.blNotEncrypted||0)+(d.blSuspended||0)},
+    {key:'blCoverage',label:'Coverage %',color:'cyan',readonly:true,compute:d=>{const t=(d.blEncrypted||0)+(d.blNotEncrypted||0)+(d.blSuspended||0);return t?Math.round((d.blEncrypted||0)/t*100):0},isPercent:true}
+  ]}]},
+  claude:{label:'🤖 Claude AI',tab:'claude',groups:[{title:'User Activity',fields:[
+    {key:'clTotal',label:'Total Users',color:'purple'},
+    {key:'clActive',label:'Active',color:'green'},
+    {key:'clInactive',label:'Inactive',color:'red'},
+    {key:'clPaid',label:'Paid Plans',color:'cyan'},
+    {key:'clFree',label:'Free Plans',color:'yellow'},
+    {key:'clQueries',label:'Queries / Month',color:'accent'}
+  ]}]},
+  atlassian:{label:'🔷 Atlassian',tab:'atlassian',groups:[{title:'User & Issue Summary',fields:[
+    {key:'atTotal',label:'Total Users',color:'accent'},
+    {key:'atActive',label:'Active',color:'green'},
+    {key:'atDormant',label:'Dormant (>30d)',color:'yellow'},
+    {key:'atJira',label:'Jira Users',color:'cyan'},
+    {key:'atConf',label:'Confluence Users',color:'purple'},
+    {key:'atBB',label:'Bitbucket Users',color:'orange'},
+    {key:'atIssues',label:'Open Jira Issues',color:'red'}
+  ]}]},
+  tickets:{label:'🎫 IT Tickets',tab:'tickets',groups:[
+    {title:'Ticket Summary',fields:[
+      {key:'tkTotal',label:'Total Raised',color:'orange'},
+      {key:'tkOpen',label:'Open',color:'red'},
+      {key:'tkResolved',label:'Resolved',color:'green'},
+      {key:'tkInProg',label:'In Progress',color:'yellow'},
+      {key:'tkSlaMet',label:'SLA Met',color:'cyan'},
+      {key:'tkSlaMiss',label:'SLA Missed',color:'red'},
+      {key:'tkSlaPct',label:'SLA Met %',color:'accent',readonly:true,compute:d=>d.tkTotal?Math.round((d.tkSlaMet||0)/(d.tkTotal||1)*100):0,isPercent:true},
+      {key:'tkAvgRes',label:'Avg Resolution (hrs)',color:'purple'}
+    ]},
+    {title:'By Category',fields:[
+      {key:'tkHardware',label:'Hardware',color:'cyan'},
+      {key:'tkSoftware',label:'Software',color:'purple'},
+      {key:'tkNetwork',label:'Network',color:'accent'},
+      {key:'tkAccess',label:'Access / Permissions',color:'yellow'},
+      {key:'tkEmail',label:'Email',color:'orange'},
+      {key:'tkPrinter',label:'Printer',color:'muted'},
+      {key:'tkVPN',label:'VPN',color:'green'},
+      {key:'tkSetup',label:'New Joinee Setup',color:'cyan'},
+      {key:'tkOther',label:'Other',color:'muted'}
+    ]}
+  ]},
+  licenses:{label:'📋 Licenses',tab:'licenses',groups:[{title:'License Health',fields:[
+    {key:'licTotal',label:'Total Licenses',color:'accent'},
+    {key:'licActive',label:'Active',color:'green'},
+    {key:'licExpiring',label:'Expiring <30 days',color:'red'},
+    {key:'licExpired',label:'Expired',color:'red'},
+    {key:'licUnused',label:'Unused Seats',color:'yellow'},
+    {key:'licCostMo',label:'Total Cost / Month (₹)',color:'cyan'}
+  ]}]},
+  mdm:{label:'📱 MDM',tab:'mdm',groups:[
+    {title:'Enrollment',fields:[
+      {key:'mdmEnrolled',label:'Enrolled',color:'green'},
+      {key:'mdmNotEnrolled',label:'Not Enrolled',color:'red'},
+      {key:'mdmPending',label:'Pending',color:'yellow'},
+      {key:'mdmTotal',label:'Total Devices',color:'accent',readonly:true,compute:d=>(d.mdmEnrolled||0)+(d.mdmNotEnrolled||0)+(d.mdmPending||0)},
+      {key:'mdmPct',label:'Enrollment %',color:'cyan',readonly:true,compute:d=>{const t=(d.mdmEnrolled||0)+(d.mdmNotEnrolled||0)+(d.mdmPending||0);return t?Math.round((d.mdmEnrolled||0)/t*100):0},isPercent:true}
+    ]},
+    {title:'By OS',fields:[
+      {key:'mdmIOS',label:'iOS',color:'cyan'},
+      {key:'mdmAndroid',label:'Android',color:'green'},
+      {key:'mdmWindows',label:'Windows',color:'accent'},
+      {key:'mdmmacOS',label:'macOS',color:'purple'}
+    ]},
+    {title:'Compliance',fields:[
+      {key:'mdmCompliant',label:'Compliant',color:'green'},
+      {key:'mdmNonCompliant',label:'Non-Compliant',color:'red'},
+      {key:'mdmEncrypted',label:'Encrypted',color:'cyan'},
+      {key:'mdmPasscode',label:'Passcode Set',color:'yellow'}
+    ]}
+  ]}
+};
+
+const OV_METRICS=[
+  {id:'onboarded',label:'Onboarded',tab:'onboarding',color:'var(--green)',key:'onboarded'},
+  {id:'offboarded',label:'Offboarded',tab:'onboarding',color:'var(--red)',key:'offboarded'},
+  {id:'laptopsAssigned',label:'Laptops Assigned',tab:'assets',color:'var(--cyan)',key:'laptopsAssigned'},
+  {id:'laptopsAvail',label:'Laptops Available',tab:'assets',color:'var(--green)',key:'laptopsAvailable'},
+  {id:'pcsAssigned',label:'PCs Assigned',tab:'assets',color:'var(--purple)',key:'pcsAssigned'},
+  {id:'mouseIssued',label:'Mouse Issued',tab:'assets',color:'var(--orange)',key:'mouseIssued'},
+  {id:'secTotal',label:'Security Threats',tab:'security',color:'var(--red)',key:'secTotal'},
+  {id:'secResolved',label:'Threats Resolved',tab:'security',color:'var(--green)',key:'secResolved'},
+  {id:'cmpCompliant',label:'Compliant Devices',tab:'compliance',color:'var(--green)',key:'cmpCompliant'},
+  {id:'cmpNonComp',label:'Non-Compliant',tab:'compliance',color:'var(--red)',key:'cmpNonCompliant'},
+  {id:'blCoverage',label:'BitLocker Coverage',tab:'bitlocker',color:'var(--cyan)',key:'blCoverage',isPercent:true},
+  {id:'clTotal',label:'Claude AI Users',tab:'claude',color:'var(--purple)',key:'clTotal'},
+  {id:'clActive',label:'Claude Active',tab:'claude',color:'var(--green)',key:'clActive'},
+  {id:'atTotal',label:'Atlassian Users',tab:'atlassian',color:'var(--accent)',key:'atTotal'},
+  {id:'atIssues',label:'Open Jira Issues',tab:'atlassian',color:'var(--yellow)',key:'atIssues'},
+  {id:'tkTotal',label:'IT Tickets Raised',tab:'tickets',color:'var(--orange)',key:'tkTotal'},
+  {id:'tkResolved',label:'Tickets Resolved',tab:'tickets',color:'var(--green)',key:'tkResolved'},
+  {id:'tkSlaPct',label:'SLA Met %',tab:'tickets',color:'var(--cyan)',key:'tkSlaPct',isPercent:true},
+  {id:'mdmEnrolled',label:'MDM Enrolled',tab:'mdm',color:'var(--green)',key:'mdmEnrolled'},
+  {id:'licExpiring',label:'Licenses Expiring',tab:'licenses',color:'var(--red)',key:'licExpiring'}
+];
+
+// ── HELPERS ──────────────────────────────────────────────────────────────────
+function toast(msg,good=true){
+  const t=document.getElementById('toast');
+  t.style.borderColor=good?'var(--green)':'var(--red)';
+  t.style.color=good?'var(--green)':'var(--red)';
+  t.textContent=msg;t.classList.add('show');
+  setTimeout(()=>t.classList.remove('show'),3000);
+}
+
+function setSyncStatus(state, msg){
+  const bar=document.getElementById('syncBar');
+  const dot=document.getElementById('syncDot');
+  const txt=document.getElementById('syncText');
+  bar.className='sync-bar '+state;
+  dot.className='sync-dot '+(state==='synced'?'dot-green':state==='syncing'?'dot-yellow':'dot-red');
+  txt.innerHTML=msg;
+  if(state==='synced') document.getElementById('lastUpdated').textContent='Last updated: '+new Date().toLocaleTimeString();
+}
+
+// ── TABS ──────────────────────────────────────────────────────────────────────
+const TAB_NAMES=['overview','onboarding','assets','security','compliance','bitlocker','claude','atlassian','tickets','licenses','mdm'];
+function switchTab(name,btn){
+  document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));
+  document.querySelectorAll('.panel').forEach(p=>p.classList.remove('active'));
+  btn.classList.add('active');
+  document.getElementById('panel-'+name).classList.add('active');
+  if(name==='overview') renderOverview();
+}
+function switchTabByName(name){
+  const idx=TAB_NAMES.indexOf(name);
+  if(idx>=0) switchTab(name,document.querySelectorAll('.tab')[idx]);
+}
+
+// ── MONTH CHANGE ─────────────────────────────────────────────────────────────
+function onMonthChange(){
+  currentMonth=document.getElementById('reportMonth').value;
+  document.getElementById('hdr-sub').textContent=currentMonth;
+  document.getElementById('sub-month').textContent=currentMonth;
+  loadAllData();
+}
+
+// ── LOAD DATA FROM SUPABASE ──────────────────────────────────────────────────
+async function loadAllData(){
+  setSyncStatus('syncing','<strong>Loading</strong> data from Supabase...');
+  try{
+    const rows = await getAllMonthsSummary();
+    // Parse into historyData structure
+    historyData={};
+    rows.forEach(r=>{
+      if(!historyData[r.month]) historyData[r.month]={};
+      historyData[r.month][r.field_key]=r.field_value;
+    });
+    // Apply computed fields for each month
+    Object.keys(historyData).forEach(m=>applyComputedToData(historyData[m]));
+    // Set current month data
+    monthData = historyData[currentMonth] || {};
+    // Get sorted unique months
+    allMonths=[...new Set(rows.map(r=>r.month))].sort((a,b)=>monthSort(a)-monthSort(b));
+    // Build panels with loaded data
+    buildAllPanels();
+    renderOverview();
+    setSyncStatus('synced','<strong>Live</strong> — data synced across all team members');
+    document.getElementById('overview-loading').style.display='none';
+    document.getElementById('cmp-grid').style.display='';
+    document.getElementById('charts-wrap').style.display='';
+  }catch(e){
+    setSyncStatus('error',`<strong>Connection error</strong> — ${e.message}`);
+    toast('❌ Failed to connect to Supabase: '+e.message, false);
+    // Fall back to empty data
+    monthData={};
+    buildAllPanels();
+    renderOverview();
+    document.getElementById('overview-loading').style.display='none';
+    document.getElementById('cmp-grid').style.display='';
+    document.getElementById('charts-wrap').style.display='';
+  }
+}
+
+function monthSort(m){
+  const months=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+  const [mon,yr]=m.split(' ');
+  return parseInt(yr)*100+months.indexOf(mon);
+}
+
+function applyComputedToData(data){
+  Object.values(SECTIONS).forEach(sec=>{
+    sec.groups.forEach(g=>{
+      g.fields.forEach(f=>{
+        if(f.readonly&&f.compute) data[f.key]=f.compute(data);
+      });
+    });
+  });
+}
+
+// ── SAVE FIELD TO SUPABASE ───────────────────────────────────────────────────
+async function saveField(section, fieldKey, value){
+  try{
+    await upsertField(currentMonth, section, fieldKey, value);
+    // Update local cache
+    if(!historyData[currentMonth]) historyData[currentMonth]={};
+    historyData[currentMonth][fieldKey]=value;
+    monthData[fieldKey]=value;
+  }catch(e){
+    throw e;
+  }
+}
+
+// ── SAVE SECTION GROUP ───────────────────────────────────────────────────────
+async function saveSectionGroup(secKey, groupFields, noteId){
+  const btn=document.querySelector(`button[data-save="${noteId}"]`);
+  if(btn) btn.disabled=true;
+  setSyncStatus('syncing','<strong>Saving</strong> to Supabase...');
+  try{
+    // Collect all values from inputs
+    const updates=[];
+    groupFields.forEach(f=>{
+      if(!f.readonly){
+        const el=document.getElementById('inp-'+f.key);
+        if(el){
+          const val=Number(el.value)||0;
+          monthData[f.key]=val;
+          updates.push({key:f.key,val});
+        }
+      }
+    });
+    // Apply computed
+    applyComputedToData(monthData);
+    if(!historyData[currentMonth]) historyData[currentMonth]={};
+    Object.assign(historyData[currentMonth],monthData);
+    // Save all to Supabase
+    await Promise.all(updates.map(u=>upsertField(currentMonth,secKey,u.key,u.val)));
+    // Also save computed fields
+    groupFields.filter(f=>f.readonly&&f.compute).forEach(f=>{
+      upsertField(currentMonth,secKey,f.key,monthData[f.key]||0);
+    });
+    // Update computed inputs
+    groupFields.filter(f=>f.readonly).forEach(f=>{
+      const el=document.getElementById('inp-'+f.key);
+      if(el) el.value=monthData[f.key]||0;
+    });
+    setSyncStatus('synced','<strong>Live</strong> — data synced across all team members');
+    toast('✅ Saved & synced to all team members!');
+    // Show saved note
+    const note=document.getElementById(noteId);
+    if(note){note.classList.add('show');setTimeout(()=>note.classList.remove('show'),2500);}
+    // Update overview if visible
+    if(document.getElementById('panel-overview').classList.contains('active')) renderOverview();
+  }catch(e){
+    setSyncStatus('error','<strong>Save failed</strong> — '+e.message);
+    toast('❌ Save failed: '+e.message, false);
+  }finally{
+    if(btn) btn.disabled=false;
+  }
+}
+
+// ── BUILD PANELS ─────────────────────────────────────────────────────────────
+function buildAllPanels(){
+  Object.keys(SECTIONS).forEach(secKey=>buildPanel(secKey));
+}
+
+function buildPanel(secKey){
+  const sec=SECTIONS[secKey];
+  const el=document.getElementById('panel-'+sec.tab);
+  const prev=getPrevMonths();
+
+  let html=`<div class="note"><strong>${sec.label}</strong> — Data saves to Supabase instantly and updates for all team members in real time. Currently editing: <strong style="color:var(--text)">${currentMonth}</strong></div>`;
+
+  sec.groups.forEach((g,gi)=>{
+    const noteId=`saved-${secKey}-${gi}`;
+    html+=`<div class="section-wrap">
+      <div class="sw-title"><span>${g.title}</span></div>
+      <div class="count-grid">`;
+
+    g.fields.forEach(f=>{
+      const val=monthData[f.key]||0;
+      const p1=prev[0]?prev[0][f.key]||0:null;
+      const p2=prev[1]?prev[1][f.key]||0:null;
+      const suf=f.isPercent?'%':'';
+      let deltaHtml='';
+      if(p1!==null){
+        const diff=val-p1;
+        const cls=diff>0?'d-up':diff<0?'d-dn':'d-nc';
+        const arrow=diff>0?'↑':diff<0?'↓':'—';
+        deltaHtml=`<div class="ci-delta ${cls}">${arrow} ${diff>0?'+':''}${diff}${suf} vs ${prev[0]._month}</div>`;
+      }
+      const p1Line=p1!==null?`<div class="ci-prev">${prev[0]._month}: ${p1}${suf}${p2!==null?' &nbsp;|&nbsp; '+prev[1]._month+': '+p2+suf:''}</div>`:'';
+      const ro=f.readonly?'readonly':'' ;
+      html+=`<div class="count-item" style="--ca:var(--${f.color||'accent'})">
+        <div class="ci-label">${f.label}</div>
+        <input type="number" id="inp-${f.key}" value="${val}" min="0" ${ro}>
+        ${p1Line}${deltaHtml}
+      </div>`;
+    });
+
+    const fieldsJson=JSON.stringify(g.fields.map(f=>({key:f.key,readonly:f.readonly||false,compute:null})));
+    html+=`</div>
+      <div class="save-row">
+        <button class="save-btn" data-save="${noteId}" onclick='saveSectionGroup("${secKey}",SECTIONS["${secKey}"].groups[${gi}].fields,"${noteId}")'>💾 Save & Sync</button>
+        <span class="saved-note" id="${noteId}">✓ Synced to all team members</span>
+      </div>
+    </div>`;
+  });
+
+  el.innerHTML=html;
+}
+
+// ── PREV MONTHS ──────────────────────────────────────────────────────────────
+function getPrevMonths(){
+  const sorted=allMonths.filter(m=>m!==currentMonth).sort((a,b)=>monthSort(b)-monthSort(a));
+  const p1=sorted[0]?{...historyData[sorted[0]]||{},_month:sorted[0]}:null;
+  const p2=sorted[1]?{...historyData[sorted[1]]||{},_month:sorted[1]}:null;
+  return [p1,p2];
+}
+
+function get3Months(){
+  const sorted=allMonths.sort((a,b)=>monthSort(a)-monthSort(b));
+  const last3=sorted.slice(-3);
+  return last3.map(m=>({...historyData[m]||{},_month:m}));
+}
+
+// ── OVERVIEW ─────────────────────────────────────────────────────────────────
+function renderOverview(){
+  applyComputedToData(monthData);
+  if(historyData[currentMonth]) Object.assign(historyData[currentMonth],monthData);
+  const months=get3Months();
+  if(!months.length) return;
+  const cur=months[months.length-1];
+  const prev1=months.length>=2?months[months.length-2]:null;
+  const prev2=months.length>=3?months[months.length-3]:null;
+
+  const grid=document.getElementById('cmp-grid');
+  grid.innerHTML=OV_METRICS.map(m=>{
+    const v=cur[m.key]||0;
+    const v1=prev1?prev1[m.key]||0:null;
+    const v2=prev2?prev2[m.key]||0:null;
+    const suf=m.isPercent?'%':'';
+    let delta='',dCls='d-nc';
+    if(v1!==null){
+      const diff=v-v1;
+      if(diff>0){delta=`↑ +${diff}${suf}`;dCls='d-up';}
+      else if(diff<0){delta=`↓ ${diff}${suf}`;dCls='d-dn';}
+      else{delta='— same';dCls='d-nc';}
+    }
+    const maxV=Math.max(v,v1||0,v2||0,1);
+    return `<div class="cmp-card" onclick="switchTabByName('${m.tab}')" style="--ca:${m.color}">
+      <div class="cc-lbl"><span class="dot"></span>${m.label}</div>
+      ${delta?`<div class="cc-delta ${dCls}">${delta}</div>`:''}
+      <div class="cc-row">
+        ${v2!==null?`<div class="cc-m p2"><div class="ml">${prev2._month}</div><div class="mv">${v2}${suf}</div></div>`:''}
+        ${v1!==null?`<div class="cc-m p1"><div class="ml">${prev1._month}</div><div class="mv">${v1}${suf}</div></div>`:''}
+        <div class="cc-m"><div class="ml">${cur._month} <span style="color:${m.color}">●</span></div><div class="mv">${v}${suf}</div></div>
+      </div>
+      <div class="cc-bar"><div class="cc-bar-fill" style="width:${Math.round(v/maxV*100)}%"></div></div>
+    </div>`;
+  }).join('');
+
+  refreshCharts(months);
+}
+
+// ── CHARTS ────────────────────────────────────────────────────────────────────
+const CH={};
+const CD={plugins:{legend:{labels:{color:'#94a3b8',font:{family:'Space Grotesk',size:11},boxWidth:10}}},scales:{x:{ticks:{color:'#64748b',font:{size:10}},grid:{color:'rgba(255,255,255,0.04)'}},y:{ticks:{color:'#64748b',font:{size:10}},grid:{color:'rgba(255,255,255,0.04)'}}}};
+const dc=id=>{if(CH[id]){CH[id].destroy();delete CH[id];}};
+
+function refreshCharts(months){
+  const cur=months[months.length-1];
+  const labels=months.map(m=>m._month);
+  const v=(m,k)=>m[k]||0;
+
+  dc('chartOnboard');
+  CH.chartOnboard=new Chart(document.getElementById('chartOnboard'),{type:'line',data:{labels,datasets:[
+    {label:'Onboarded',data:months.map(m=>v(m,'onboarded')),borderColor:'#10b981',backgroundColor:'rgba(16,185,129,.08)',tension:.3,fill:true,pointRadius:4,pointBackgroundColor:'#10b981'},
+    {label:'Offboarded',data:months.map(m=>v(m,'offboarded')),borderColor:'#ef4444',backgroundColor:'rgba(239,68,68,.08)',tension:.3,fill:true,pointRadius:4,pointBackgroundColor:'#ef4444'}
+  ]},options:{...CD}});
+
+  dc('chartAssets');
+  CH.chartAssets=new Chart(document.getElementById('chartAssets'),{type:'doughnut',data:{
+    labels:['Laptops Assigned','Laptops Available','PCs Assigned','PCs Available','Mouse Issued'],
+    datasets:[{data:[v(cur,'laptopsAssigned'),v(cur,'laptopsAvailable'),v(cur,'pcsAssigned'),v(cur,'pcsAvailable'),v(cur,'mouseIssued')],
+    backgroundColor:['rgba(16,185,129,.8)','rgba(6,182,212,.8)','rgba(139,92,246,.8)','rgba(59,130,246,.8)','rgba(249,115,22,.8)'],borderWidth:0}]
+  },options:{plugins:CD.plugins,cutout:'62%'}});
+
+  dc('chartSecurity');
+  CH.chartSecurity=new Chart(document.getElementById('chartSecurity'),{type:'bar',data:{labels,datasets:[
+    {label:'Critical',data:months.map(m=>v(m,'secCritical')),backgroundColor:'rgba(239,68,68,.75)',borderRadius:4},
+    {label:'Medium',data:months.map(m=>v(m,'secMedium')),backgroundColor:'rgba(245,158,11,.75)',borderRadius:4},
+    {label:'Low',data:months.map(m=>v(m,'secLow')),backgroundColor:'rgba(16,185,129,.75)',borderRadius:4}
+  ]},options:{...CD,scales:{...CD.scales,x:{...CD.scales.x,stacked:true},y:{...CD.scales.y,stacked:true}}}});
+
+  dc('chartTickets');
+  CH.chartTickets=new Chart(document.getElementById('chartTickets'),{type:'line',data:{labels,datasets:[
+    {label:'Total',data:months.map(m=>v(m,'tkTotal')),borderColor:'#f97316',tension:.3,pointRadius:4,pointBackgroundColor:'#f97316',fill:false},
+    {label:'Resolved',data:months.map(m=>v(m,'tkResolved')),borderColor:'#10b981',tension:.3,pointRadius:4,pointBackgroundColor:'#10b981',fill:false},
+    {label:'Open',data:months.map(m=>v(m,'tkOpen')),borderColor:'#ef4444',tension:.3,pointRadius:4,pointBackgroundColor:'#ef4444',fill:false}
+  ]},options:{...CD}});
+
+  dc('chartCompliance');
+  CH.chartCompliance=new Chart(document.getElementById('chartCompliance'),{type:'doughnut',data:{
+    labels:['Compliant','Non-Compliant','Pending','BL Encrypted','BL Missing'],
+    datasets:[{data:[v(cur,'cmpCompliant'),v(cur,'cmpNonCompliant'),v(cur,'cmpPending'),v(cur,'blEncrypted'),v(cur,'blNotEncrypted')],
+    backgroundColor:['rgba(16,185,129,.8)','rgba(239,68,68,.8)','rgba(245,158,11,.8)','rgba(6,182,212,.8)','rgba(139,92,246,.8)'],borderWidth:0}]
+  },options:{plugins:CD.plugins,cutout:'62%'}});
+
+  dc('chartMDM');
+  CH.chartMDM=new Chart(document.getElementById('chartMDM'),{type:'doughnut',data:{
+    labels:['iOS','Android','Windows','macOS'],
+    datasets:[{data:[v(cur,'mdmIOS'),v(cur,'mdmAndroid'),v(cur,'mdmWindows'),v(cur,'mdmmacOS')],
+    backgroundColor:['rgba(6,182,212,.8)','rgba(16,185,129,.8)','rgba(59,130,246,.8)','rgba(139,92,246,.8)'],borderWidth:0}]
+  },options:{plugins:CD.plugins,cutout:'62%'}});
+
+  dc('chartClaude');
+  CH.chartClaude=new Chart(document.getElementById('chartClaude'),{type:'bar',data:{labels,datasets:[
+    {label:'Total',data:months.map(m=>v(m,'clTotal')),backgroundColor:'rgba(139,92,246,.7)',borderRadius:4},
+    {label:'Active',data:months.map(m=>v(m,'clActive')),backgroundColor:'rgba(16,185,129,.7)',borderRadius:4}
+  ]},options:{...CD}});
+
+  dc('chartAtlassian');
+  CH.chartAtlassian=new Chart(document.getElementById('chartAtlassian'),{type:'bar',data:{labels,datasets:[
+    {label:'Active',data:months.map(m=>v(m,'atActive')),backgroundColor:'rgba(16,185,129,.7)',borderRadius:4},
+    {label:'Dormant',data:months.map(m=>v(m,'atDormant')),backgroundColor:'rgba(245,158,11,.7)',borderRadius:4},
+    {label:'Open Issues',data:months.map(m=>v(m,'atIssues')),backgroundColor:'rgba(239,68,68,.7)',borderRadius:4}
+  ]},options:{...CD}});
+}
+
+// ── EXPORT TXT ────────────────────────────────────────────────────────────────
+function exportTXT(){
+  applyComputedToData(monthData);
+  const months=get3Months();
+  const lines=[
+    `IT MONTHLY REPORT — ${currentMonth}`,
+    `Generated: ${new Date().toLocaleString()}`,
+    `Data source: Supabase (live)`,
+    '='.repeat(55),''
+  ];
+  lines.push('3-MONTH COMPARISON');
+  lines.push('-'.repeat(55));
+  OV_METRICS.forEach(m=>{
+    const vals=months.map(mo=>`${mo._month}: ${mo[m.key]||0}${m.isPercent?'%':''}`);
+    lines.push(`  ${m.label.padEnd(28)} ${vals.join('  |  ')}`);
+  });
+  lines.push('');
+  Object.keys(SECTIONS).forEach(secKey=>{
+    const sec=SECTIONS[secKey];
+    lines.push(`\n[${sec.label}]`);
+    sec.groups.forEach(g=>{
+      lines.push(`  ${g.title}:`);
+      g.fields.forEach(f=>{
+        lines.push(`    ${f.label.padEnd(32)} ${monthData[f.key]||0}${f.isPercent?'%':''}`);
+      });
+    });
+  });
+  const blob=new Blob([lines.join('\n')],{type:'text/plain'});
+  const a=document.createElement('a');
+  a.href=URL.createObjectURL(blob);
+  a.download=`IT_Report_${currentMonth.replace(' ','_')}.txt`;
+  a.click();
+  toast('📄 Report exported!');
+}
+
+// ── AUTO REFRESH every 60 seconds ────────────────────────────────────────────
+setInterval(()=>{
+  loadAllData();
+}, 60000);
+
+// ── INIT ─────────────────────────────────────────────────────────────────────
+document.getElementById('reportMonth').value=currentMonth;
+document.getElementById('hdr-sub').textContent=currentMonth;
+document.getElementById('sub-month').textContent=currentMonth;
+loadAllData();
+</script>
+</body>
+</html>
